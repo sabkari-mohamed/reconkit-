@@ -5,4 +5,4 @@ shodan>=1.28
 jinja2>=3.1
 rich>=13.0
 flask>=3.0
-; configparser is part of the Python 3 standard library (listed for clarity)
+# configparser is part of the Python 3 standard library (listed for clarity)
