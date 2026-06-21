@@ -237,7 +237,7 @@ assess.
 **Mohamed Sabkari** — security / OSINT tooling.
 
 - GitHub: <https://github.com/sabkari-mohamed>
-- LinkedIn / portfolio: _add your link here_
+- LinkedIn: <https://www.linkedin.com/in/mohamedsabkari/>
 
 If ReconKit is useful to you, a ⭐ on the repo is appreciated.
 
