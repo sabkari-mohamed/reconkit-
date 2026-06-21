@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReconKit OSINT Report — {{ target }}</title>
+<style>
+  :root {
+    --bg: #0f1419; --panel: #1a2029; --panel2: #222a35;
+    --text: #e6edf3; --muted: #8b98a9; --accent: #2dd4bf;
+    --accent2: #7c93ff; --warn: #f0b429; --danger: #f06560;
+    --good: #4ade80; --border: #2c333d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif; line-height: 1.5; font-size: 15px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; }
+  header {
+    border-bottom: 1px solid var(--border); padding-bottom: 20px;
+    margin-bottom: 28px;
+  }
+  header h1 { margin: 0 0 6px; font-size: 26px; }
+  header h1 .kit { color: var(--accent); }
+  header .meta { color: var(--muted); font-size: 14px; }
+  header .meta b { color: var(--text); }
+  h2 {
+    font-size: 18px; margin: 36px 0 14px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cards {
+    display: grid; gap: 14px; margin: 8px 0 4px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+  .card .num { font-size: 30px; font-weight: 700; color: var(--accent2); }
+  .card .lbl { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  table {
+    width: 100%; border-collapse: collapse; margin-top: 8px;
+    background: var(--panel); border-radius: 10px; overflow: hidden;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border);
+    vertical-align: top; word-break: break-word;
+  }
+  th { background: var(--panel2); color: var(--muted); font-weight: 600;
+       text-transform: uppercase; font-size: 12px; letter-spacing: .04em; }
+  tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block; padding: 2px 9px; border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+  }
+  .badge.live { background: rgba(74,222,128,.15); color: var(--good); }
+  .badge.dead { background: rgba(139,152,169,.15); color: var(--muted); }
+  .notes { list-style: none; padding: 0; margin: 0; }
+  .notes li {
+    background: rgba(240,180,41,.08); border-left: 3px solid var(--warn);
+    padding: 10px 14px; border-radius: 6px; margin-bottom: 8px;
+  }
+  .notes li.ok { background: rgba(74,222,128,.08); border-left-color: var(--good); }
+  .mono { font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; }
+  .pill { background: var(--panel2); padding: 1px 7px; border-radius: 5px;
+          margin: 0 3px 3px 0; display: inline-block; font-size: 12px; }
+  .vuln { color: var(--danger); font-weight: 600; }
+  .empty { color: var(--muted); font-style: italic; padding: 8px 2px; }
+  .risk {
+    display: flex; align-items: center; gap: 22px; margin: 8px 0 4px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 24px;
+  }
+  .risk .grade {
+    font-size: 52px; font-weight: 800; line-height: 1;
+    width: 84px; height: 84px; border-radius: 14px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .risk .meta-txt { flex: 1; }
+  .risk .score { font-size: 15px; color: var(--muted); margin-bottom: 4px; }
+  .risk .summary { font-size: 15px; }
+  .g-A { background: rgba(74,222,128,.15); color: var(--good); }
+  .g-B { background: rgba(45,212,191,.15); color: var(--accent); }
+  .g-C { background: rgba(240,180,41,.15); color: var(--warn); }
+  .g-D { background: rgba(240,140,41,.18); color: #f59e0b; }
+  .g-F { background: rgba(240,101,96,.18); color: var(--danger); }
+  .scroll { max-height: 360px; overflow-y: auto; border-radius: 10px; }
+  footer {
+    margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 13px; text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1><span class="kit">ReconKit</span> OSINT Report</h1>
+    <div class="meta">
+      target: <b>{{ target }}</b> &nbsp;·&nbsp; scan date: <b>{{ scan_date }}</b>
+      {% if meta %}&nbsp;·&nbsp; by <b>{{ meta.author }}</b>{% endif %}
+    </div>
+  </header>
+
+  <!-- Risk hero -->
+  {% if risk %}
+  <div class="risk">
+    <div class="grade g-{{ risk.grade }}">{{ risk.grade }}</div>
+    <div class="meta-txt">
+      <div class="score">Exposure score: <b>{{ risk.score }}</b> / 100</div>
+      <div class="summary">{{ risk.summary }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Summary cards -->
+  <div class="cards">
+    <div class="card"><div class="num">{{ summary.subdomains }}</div>
+      <div class="lbl">Subdomains</div></div>
+    <div class="card"><div class="num">{{ summary.live_hosts }}</div>
+      <div class="lbl">Live hosts</div></div>
+    <div class="card"><div class="num">{{ summary.emails }}</div>
+      <div class="lbl">Emails</div></div>
+    <div class="card"><div class="num">{{ summary.open_ports }}</div>
+      <div class="lbl">Open ports</div></div>
+  </div>
+
+  <!-- Security notes -->
+  <h2>Security Notes</h2>
+  {% if security_notes %}
+  <ul class="notes">
+    {% for note in security_notes %}<li>⚠ {{ note }}</li>{% endfor %}
+  </ul>
+  {% else %}
+  <ul class="notes"><li class="ok">No security notes flagged.</li></ul>
+  {% endif %}
+
+  <!-- Risk factors -->
+  {% if risk and risk.factors %}
+  <h2>Risk Factor Breakdown</h2>
+  <table>
+    <thead><tr><th>Factor</th><th style="width:90px">Points</th><th>Detail</th></tr></thead>
+    <tbody>
+    {% for f in risk.factors %}
+      <tr><td>{{ f.name }}</td><td class="vuln">+{{ f.points }}</td><td>{{ f.detail }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- WHOIS -->
+  <h2>WHOIS</h2>
+  {% if whois and not whois.error %}
+  <table>
+    <tr><th>Registrar</th><td>{{ whois.registrar or "—" }}</td></tr>
+    <tr><th>Created</th><td>{{ whois.creation_date or "—" }}</td></tr>
+    <tr><th>Expires</th><td>{{ whois.expiration_date or "—" }}
+      {% if whois.expiring_soon %}
+        <span class="badge dead vuln">expires in {{ whois.days_to_expiry }}d</span>
+      {% endif %}</td></tr>
+    <tr><th>Updated</th><td>{{ whois.updated_date or "—" }}</td></tr>
+    <tr><th>Registrant org</th><td>{{ whois.registrant_org or "—" }}</td></tr>
+    <tr><th>Country</th><td>{{ whois.registrant_country or "—" }}</td></tr>
+    <tr><th>Name servers</th><td>
+      {% for ns in whois.name_servers %}<span class="pill mono">{{ ns }}</span>{% else %}—{% endfor %}
+    </td></tr>
+    <tr><th>Status</th><td>
+      {% for s in whois.status %}<span class="pill">{{ s }}</span>{% else %}—{% endfor %}
+    </td></tr>
+  </table>
+  {% else %}
+  <div class="empty">{{ whois.error if whois and whois.error else "WHOIS not collected." }}</div>
+  {% endif %}
+
+  <!-- DNS -->
+  <h2>DNS Records</h2>
+  {% if dns and dns.records %}
+  <table>
+    <thead><tr><th style="width:90px">Type</th><th>Values</th></tr></thead>
+    <tbody>
+    {% for rtype, values in dns.records.items() %}
+      <tr><td class="mono">{{ rtype }}</td>
+        <td>{% for v in values %}<div class="mono">{{ v }}</div>{% else %}<span class="empty">none</span>{% endfor %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p>
+    SPF: {% if dns.spf %}<span class="badge live">present</span>{% else %}<span class="badge dead vuln">missing</span>{% endif %}
+    &nbsp; DMARC: {% if dns.dmarc %}<span class="badge live">present</span>{% else %}<span class="badge dead vuln">missing</span>{% endif %}
+  </p>
+  {% else %}
+  <div class="empty">DNS not collected.</div>
+  {% endif %}
+
+  <!-- Subdomains -->
+  <h2>Subdomains <span class="lbl">({{ summary.subdomains }})</span></h2>
+  {% if subdomains %}
+  <table>
+    <thead><tr><th>Subdomain</th><th style="width:120px">Resolves</th><th style="width:200px">IP</th></tr></thead>
+    <tbody>
+    {% for s in subdomains %}
+      <tr>
+        <td class="mono">{{ s.subdomain }}</td>
+        <td>{% if s.resolves %}<span class="badge live">live</span>{% elif s.resolves is none %}<span class="badge dead">—</span>{% else %}<span class="badge dead">historical</span>{% endif %}</td>
+        <td class="mono">{{ s.ip or "—" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No subdomains found.</div>
+  {% endif %}
+
+  <!-- Emails -->
+  <h2>Emails <span class="lbl">({{ summary.emails }})</span></h2>
+  {% if emails %}
+  <table>
+    <thead><tr><th>Email</th><th>Name</th><th>Position</th><th style="width:110px">Confidence</th></tr></thead>
+    <tbody>
+    {% for e in emails %}
+      <tr>
+        <td class="mono">{{ e.email }}</td>
+        <td>{{ (e.first_name or "") ~ " " ~ (e.last_name or "") }}</td>
+        <td>{{ e.position or "—" }}</td>
+        <td>{{ e.confidence if e.confidence is not none else "—" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No emails harvested (Hunter.io key may be unset).</div>
+  {% endif %}
+
+  <!-- Shodan -->
+  <h2>Shodan Hosts <span class="lbl">({{ summary.shodan_hosts }})</span></h2>
+  {% if shodan %}
+  {% for host in shodan %}
+  <table style="margin-bottom:18px">
+    <tr><th style="width:140px">IP</th><td class="mono">{{ host.ip }}</td></tr>
+    <tr><th>Org</th><td>{{ host.org or "—" }} {% if host.country %}· {{ host.country }}{% endif %}</td></tr>
+    <tr><th>Hostnames</th><td>{% for h in host.hostnames %}<span class="pill mono">{{ h }}</span>{% else %}—{% endfor %}</td></tr>
+    <tr><th>Open ports</th><td>{% for p in host.ports %}<span class="pill mono">{{ p }}</span>{% else %}—{% endfor %}</td></tr>
+    <tr><th>Services</th><td>
+      {% for svc in host.services %}
+        <div class="mono">:{{ svc.port }} {{ svc.product or "" }} {{ svc.version or "" }}</div>
+      {% else %}<span class="empty">none</span>{% endfor %}
+    </td></tr>
+    {% if host.vulns %}
+    <tr><th>Vuln tags</th><td>{% for v in host.vulns %}<span class="pill vuln">{{ v }}</span>{% endfor %}</td></tr>
+    {% endif %}
+    <tr><th>Last update</th><td>{{ host.last_update or "—" }}</td></tr>
+  </table>
+  {% endfor %}
+  {% else %}
+  <div class="empty">No Shodan data (key may be unset or no hosts indexed).</div>
+  {% endif %}
+
+  <!-- Networks / ASN -->
+  {% if asn and asn.networks %}
+  <h2>Networks / ASN <span class="lbl">({{ asn.networks|length }})</span></h2>
+  <table>
+    <thead><tr><th>ASN</th><th>Organisation</th><th>Prefix</th><th style="width:90px">Country</th></tr></thead>
+    <tbody>
+    {% for n in asn.networks %}
+      <tr><td class="mono">{{ n.asn or "—" }}</td><td>{{ n.as_name or "—" }}</td>
+        <td class="mono">{{ n.prefix or "—" }}</td><td>{{ n.country or "—" }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- Sensitive archived URLs -->
+  {% if urls and urls.interesting %}
+  <h2>Sensitive Archived URLs <span class="lbl">({{ urls.interesting|length }})</span></h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th style="width:110px">Match</th><th>URL (Wayback Machine)</th></tr></thead>
+    <tbody>
+    {% for i in urls.interesting %}
+      <tr><td><span class="pill vuln">{{ i.match }}</span></td><td class="mono">{{ i.url }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+
+  <!-- Archived URL totals -->
+  {% if urls and urls.count %}
+  <p class="lbl">Total archived/observed URLs: <b>{{ urls.count }}</b>
+    (Wayback: {{ urls.sources.wayback }}, urlscan.io: {{ urls.sources.urlscan }})</p>
+  {% endif %}
+
+  <!-- Threat intel -->
+  {% if threat and (threat.pulses or threat.passive_dns) %}
+  <h2>Threat Intelligence <span class="lbl">(AlienVault OTX)</span></h2>
+  <table>
+    <tr><th style="width:160px">Threat pulses</th>
+      <td>{% if threat.malicious %}<span class="badge dead vuln">{{ threat.pulses }} pulse(s)</span>{% else %}<span class="badge live">clean ({{ threat.pulses }})</span>{% endif %}</td></tr>
+    <tr><th>Passive DNS records</th><td>{{ threat.passive_dns|length }}</td></tr>
+  </table>
+  {% endif %}
+
+  <!-- External tool orchestration -->
+  {% if tools and tools.available %}
+  <h2>Tool Orchestration <span class="lbl">({{ tools.used|length }} used)</span></h2>
+  <table>
+    <thead><tr><th>Tool</th><th style="width:120px">Status</th><th style="width:120px">Results</th></tr></thead>
+    <tbody>
+    {% for name, ok in tools.available.items() %}
+      <tr>
+        <td class="mono">{{ name }}</td>
+        <td>{% if ok %}<span class="badge live">installed</span>{% else %}<span class="badge dead">not installed</span>{% endif %}</td>
+        <td class="mono">{{ tools.counts.get(name, 0) if ok else "—" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="lbl">Best-in-class passive tools (subfinder · amass · gau) are auto-detected and orchestrated when installed.</p>
+  {% endif %}
+
+  <footer>
+    {% if meta %}
+    Generated by <b>ReconKit v{{ meta.version }}</b> · by <b>{{ meta.author }}</b>
+    {% if elapsed_seconds is defined %}· {{ elapsed_seconds }}s{% endif %}<br>
+    {% if meta.url %}<a href="{{ meta.url }}" style="color:var(--accent);text-decoration:none">{{ meta.url }}</a> · {% endif %}
+    {% else %}
+    Generated by <b>ReconKit</b> ·
+    {% endif %}
+    for authorized OSINT only.
+  </footer>
+
+</div>
+</body>
+</html>

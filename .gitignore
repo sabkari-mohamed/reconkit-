@@ -1,0 +1,15 @@
+config/config.ini
+output/*
+!output/.gitkeep
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.log
+
+# packaging / tooling
+*.egg-info/
+build/
+dist/
+.pytest_cache/

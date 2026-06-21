@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReconKit — Passive OSINT Dashboard</title>
+<meta name="description" content="Passive OSINT reconnaissance dashboard — subdomains, DNS, WHOIS, ASN, URLs, threat intel and an exposure risk score for any domain.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- icon sprite (no emoji; Lucide-style) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-radar" viewBox="0 0 24 24"><path d="M19.07 4.93A10 10 0 1 0 22 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 12 19 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="m3 7 9 6 9-6" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="13" width="18" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 7.5h.01M7 16.5h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-network" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="5" cy="19" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="19" cy="19" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7.5v4m0 0-5 5m5-5 5 5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v4m0 3h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.1-1.47-1.1-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z" fill="currentColor"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-radar"/></svg></span>
+    <div>
+      <div class="brand-name">Recon<span>Kit</span></div>
+      <div class="brand-sub">Passive OSINT Dashboard</div>
+    </div>
+    <span class="pill">v{{ meta.version }}</span>
+  </div>
+  <div class="top-actions">
+    <span class="authz"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg> Authorized targets only</span>
+    <a class="ghost-btn" href="{{ meta.url }}" target="_blank" rel="noopener" aria-label="GitHub repository">
+      <svg class="ic" aria-hidden="true"><use href="#i-github"/></svg>
+    </a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Scan form -->
+  <section class="panel scan" aria-labelledby="scan-h">
+    <h1 id="scan-h" class="panel-title">Run a passive recon scan</h1>
+    <p class="muted">Aggregates public OSINT — Certificate Transparency, DNS, WHOIS, urlscan.io,
+      Wayback Machine, Team&nbsp;Cymru ASN and AlienVault&nbsp;OTX — then scores the exposure.
+      No traffic is sent to the target beyond standard DNS/WHOIS.</p>
+
+    <form id="scan-form" autocomplete="off">
+      <div class="input-row">
+        <label class="sr-only" for="domain">Target domain</label>
+        <div class="input-wrap">
+          <svg class="ic input-ic" aria-hidden="true"><use href="#i-search"/></svg>
+          <input id="domain" name="domain" type="text" inputmode="url"
+                 placeholder="example.com" required
+                 pattern="^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                 aria-describedby="domain-help">
+        </div>
+        <button id="run" type="submit" class="cta">
+          <span class="cta-label">Run Recon</span>
+          <span class="spinner" hidden aria-hidden="true"></span>
+        </button>
+      </div>
+      <p id="domain-help" class="err" role="alert" hidden></p>
+
+      <fieldset class="modules">
+        <legend class="sr-only">Modules</legend>
+        <label class="chip"><input type="checkbox" name="m" value="subdomains" checked><span>Subdomains</span></label>
+        <label class="chip"><input type="checkbox" name="m" value="tools"><span>Power&nbsp;Tools <em>(subfinder/amass/gau)</em></span></label>
+        <label class="chip"><input type="checkbox" name="m" value="dns" checked><span>DNS</span></label>
+        <label class="chip"><input type="checkbox" name="m" value="whois" checked><span>WHOIS</span></label>
+        <label class="chip"><input type="checkbox" name="m" value="asn" checked><span>ASN</span></label>
+        <label class="chip"><input type="checkbox" name="m" value="urlscan" checked><span>urlscan.io</span></label>
+        <label class="chip"><input type="checkbox" name="m" value="threat" checked><span>Threat&nbsp;Intel</span></label>
+        <label class="chip"><input type="checkbox" name="m" value="wayback"><span>Wayback <em>(slow)</em></span></label>
+        <label class="chip"><input type="checkbox" name="m" value="emails"><span>Emails <em>(key)</em></span></label>
+        <label class="chip"><input type="checkbox" name="m" value="shodan"><span>Shodan <em>(key)</em></span></label>
+      </fieldset>
+    </form>
+  </section>
+
+  <!-- Live progress -->
+  <section class="panel progress" id="progress" hidden aria-live="polite" aria-label="Scan progress">
+    <div class="progress-head">
+      <span class="progress-title"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg> Scanning <b id="prog-domain"></b></span>
+      <span class="muted mono" id="prog-elapsed">0.0s</span>
+    </div>
+    <ul class="modlist" id="modlist"></ul>
+  </section>
+
+  <!-- Results -->
+  <section id="results" hidden>
+
+    <div class="result-bar">
+      <h2 class="panel-title">Report — <span class="mono" id="r-domain"></span></h2>
+      <div class="result-actions">
+        <button class="ghost-btn wide" id="dl-json"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> JSON</button>
+        <button class="ghost-btn wide" id="dl-md"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg> Markdown</button>
+      </div>
+    </div>
+
+    <!-- Risk hero -->
+    <div class="panel risk-hero">
+      <div class="ring-wrap">
+        <svg viewBox="0 0 120 120" class="ring" aria-hidden="true">
+          <circle cx="60" cy="60" r="52" class="ring-bg"/>
+          <circle cx="60" cy="60" r="52" class="ring-fg" id="ring-fg"/>
+        </svg>
+        <div class="ring-grade" id="r-grade">–</div>
+      </div>
+      <div class="risk-text">
+        <div class="risk-label">Exposure score <b id="r-score">0</b>/100</div>
+        <p class="risk-summary" id="r-summary"></p>
+      </div>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="cards" id="cards"></div>
+
+    <!-- Risk factor chart + security notes -->
+    <div class="grid-2">
+      <div class="panel">
+        <h3 class="sec-title">Risk factor breakdown</h3>
+        <div id="chart" class="chart" role="img" aria-label="Risk factor breakdown chart"></div>
+        <table class="sr-only" id="chart-table"></table>
+      </div>
+      <div class="panel">
+        <h3 class="sec-title">Security notes</h3>
+        <ul class="notes" id="notes"></ul>
+      </div>
+    </div>
+
+    <!-- Detail sections injected here -->
+    <div id="sections"></div>
+
+  </section>
+
+  <p class="ethics muted">
+    <svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>
+    For authorized reconnaissance and bug-bounty (in-scope) targets only. All sources are passive and public.
+  </p>
+</main>
+
+<footer class="foot">
+  <span>ReconKit v{{ meta.version }} · by <b>{{ meta.author }}</b></span>
+  <span class="muted">for authorized OSINT only</span>
+</footer>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
