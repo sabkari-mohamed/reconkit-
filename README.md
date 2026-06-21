@@ -1,7 +1,7 @@
 # ReconKit — Passive OSINT Reconnaissance Toolkit
 
 [![CI](https://github.com/sabkari-mohamed/reconkit-/actions/workflows/ci.yml/badge.svg)](https://github.com/sabkari-mohamed/reconkit-/actions/workflows/ci.yml)
-![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+![Python](https://img.shields.io/badge/python-3.9%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/recon-passive-orange)
 ![Version](https://img.shields.io/badge/version-2.1.0-blueviolet)

@@ -7,7 +7,7 @@ name = "reconkit-osint"
 version = "2.1.0"
 description = "Passive OSINT reconnaissance aggregator for a domain (CT logs, DNS, WHOIS, Hunter.io, Shodan) with JSON + HTML reporting."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "Mohamed Sabkari" }]
 keywords = ["osint", "recon", "security", "bug-bounty", "subdomains", "dns", "whois", "shodan"]
